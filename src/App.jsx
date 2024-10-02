@@ -1,8 +1,24 @@
 import "./index.css";
-import { Button, Divider, Heading, Link, Stack } from "@chakra-ui/react";
+import {
+  Button,
+  Divider,
+  Heading,
+  Link,
+  Stack,
+  useDisclosure,
+} from "@chakra-ui/react";
 import { Radio, RadioGroup } from "@chakra-ui/react";
 import { useState } from "react";
 import { useToast } from "@chakra-ui/react";
+import {
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalFooter,
+  ModalBody,
+  ModalCloseButton,
+} from "@chakra-ui/react";
 
 export default function App() {
   const [counterPass, setCounterPass] = useState(0);
@@ -14,6 +30,9 @@ export default function App() {
   const [deferValue, setDeferValue] = useState("0");
   const [failValue, setFailValue] = useState("0");
   const [outcome, setOutcome] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { isOpen, onOpen, onClose } = useDisclosure();
+
   const toast = useToast({
     title: "Incorrect Total",
     description: "Your total credits should equal up to 120",
@@ -25,25 +44,48 @@ export default function App() {
   function calculateOutcome() {
     let sum = Number(passValue) + Number(deferValue) + Number(failValue);
     if (sum !== 120 || sum < 120) {
-      toast.apply();
-    } else if (Number(passValue) === 120) {
-      setOutcome("Progress");
-      setCounterPass(counterPass + 1);
-    } else if (Number(passValue) === 100) {
-      setOutcome("Progress - Module Trailer");
-      setCounterProgressModule(counterProgressModule + 1);
-    } else if (Number(passValue) <= 20 && Number(failValue) >= 80) {
-      setOutcome("Exclude");
-      setCounterExclude(counterExclude + 1);
-    } else {
-      setOutcome("Do Not Progress - Module Retriever");
-      setCounterRetriever(counterRetriever + 1);
+      return toast.apply();
     }
+
+    setIsLoading(true);
+    setTimeout(() => {
+      onOpen();
+      if (Number(passValue) === 120) {
+        setOutcome("Progress");
+        setCounterPass(counterPass + 1);
+      } else if (Number(passValue) === 100) {
+        setOutcome("Progress - Module Trailer");
+        setCounterProgressModule(counterProgressModule + 1);
+      } else if (Number(passValue) <= 20 && Number(failValue) >= 80) {
+        setOutcome("Exclude");
+        setCounterExclude(counterExclude + 1);
+      } else {
+        setOutcome("Do Not Progress - Module Retriever");
+        setCounterRetriever(counterRetriever + 1);
+      }
+      setIsLoading(false);
+    }, 2000);
+
+    // setIsLoading(false);
   }
 
   return (
     <>
       <section className="bg-slate-950 w-screen h-screen flex flex-col items-center font-sans text-white p-8 justify-evenly">
+        <Modal isOpen={isOpen} onClose={onClose} isCentered>
+          <ModalOverlay backdropFilter="auto" backdropBlur="4px" />
+          <ModalContent>
+            <ModalHeader>Your Progression Outcome Is:</ModalHeader>
+            <ModalCloseButton />
+            <ModalBody>{outcome}</ModalBody>
+
+            <ModalFooter>
+              <Button colorScheme="blue" mr={3} onClick={onClose}>
+                Close
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
         <div className="text-center">
           <Heading className="text-2xl">
             University progression outcome calculator
@@ -92,22 +134,13 @@ export default function App() {
             <Radio value="120">120</Radio>
           </Stack>
         </RadioGroup>
-        <Button onClick={calculateOutcome}>Calcualte Outcome</Button>
-        <Divider />
-        <Heading textDecoration={"underline"}>
-          Your progression outcome is : {outcome}
-        </Heading>
-        <Heading>Histogram of results:</Heading>
-        <p>Student - Progress : {"*".repeat(counterPass)}</p>
-        <p>
-          Student - Progress (Module Trailer) :{" "}
-          {"*".repeat(counterProgressModule)}
-        </p>
-        <p>
-          Student - Do Not Progress (Module Retriever) :{" "}
-          {"*".repeat(counterRetriever)}
-        </p>
-        <p>Student - Exclude : {"*".repeat(counterExclude)}</p>
+        <Button
+          onClick={calculateOutcome}
+          isLoading={isLoading}
+          loadingText="Calculating"
+        >
+          Calcualte Outcome
+        </Button>
       </section>
     </>
   );
